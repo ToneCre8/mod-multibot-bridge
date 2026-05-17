@@ -63,6 +63,7 @@ void RunOutfitCommand(Player* requester, ChatMsg replyType, std::string const& b
 void RunTrainerLearnCommand(Player* requester, ChatMsg replyType, std::string const& botName, std::string const& requestToken, std::string const& trainerEntryValue, std::string const& spellIdValue);
 void RunProfessionRecipeCraftCommand(Player* requester, ChatMsg replyType, std::string const& botName, std::string const& requestToken, std::string const& skillIdValue, std::string const& spellIdValue, std::string const& itemIdValue);
 void RunInventoryItemActionCommand(Player* requester, ChatMsg replyType, std::string const& botName, std::string const& requestToken, std::string const& actionValue, std::string const& itemIdValue, std::string const& countValue);
+void RunSpellIgnoreCommand(Player* requester, ChatMsg replyType, std::string const& botName, std::string const& requestToken, std::string const& spellIdValue, std::string const& enabledValue);
 void SendBotReputationPackets(Player* requester, ChatMsg replyType, std::string const& botName, std::string const& requestToken);
 void SendBotEmblemPackets(Player* requester, ChatMsg replyType, std::string const& botName, std::string const& requestToken);
 uint32 GetPct(uint32 current, uint32 max);
@@ -3444,6 +3445,36 @@ void RunProfessionRecipeCraftCommand(Player* requester, ChatMsg replyType, std::
     SendAddonPacket(requester, replyType, "PROFESSION_RECIPE_CRAFT", payload.str());
 }
 
+void RunSpellIgnoreCommand(Player* requester, ChatMsg replyType, std::string const& botName, std::string const& requestToken, std::string const& spellIdValue, std::string const& enabledValue)
+{
+    std::string const trimmedBotName = Trim(botName);
+    uint32 const spellId = static_cast<uint32>(std::strtoul(spellIdValue.c_str(), nullptr, 10));
+    bool const enabled = Trim(enabledValue) == "1";
+    bool ok = false;
+
+    if (Player* const bot = FindBotByName(requester, trimmedBotName))
+    {
+        if (spellId)
+        {
+            if (PlayerbotAI* const botAI = sPlayerbotsMgr.GetPlayerbotAI(bot))
+            {
+                std::set<uint32>& ignoredSpells =
+                    botAI->GetAiObjectContext()->GetValue<std::set<uint32>&>("skip spells list")->Get();
+                if (enabled)
+                    ignoredSpells.erase(spellId);
+                else
+                    ignoredSpells.insert(spellId);
+                ok = true;
+            }
+        }
+    }
+
+    std::ostringstream payload;
+    payload << UrlEncodeField(trimmedBotName) << kFieldSeparator << requestToken << kFieldSeparator << spellId << kFieldSeparator
+        << (enabled ? "1" : "0") << kFieldSeparator << (ok ? "OK" : "ERR");
+    SendAddonPacket(requester, replyType, "SPELL_IGNORE", payload.str());
+}
+
 void RunOutfitCommand(Player* requester, ChatMsg replyType, std::string const& botName, std::string const& requestToken, std::string const& encodedSuffix, std::string const& persistToken)
 {
     std::string const trimmedBotName = Trim(botName);
@@ -4362,6 +4393,15 @@ bool HandleBridgeOpcode(Player* player, ChatMsg replyType, std::string const& op
             std::pair<std::string, std::string> const actionRequest = SplitOnce(tokenRequest.second, kFieldSeparator);
             std::pair<std::string, std::string> const itemRequest = SplitOnce(actionRequest.second, kFieldSeparator);
             RunInventoryItemActionCommand(player, replyType, botRequest.first, tokenRequest.first, actionRequest.first, itemRequest.first, itemRequest.second);
+            return true;
+        }
+
+        if (requestType == "SPELL_IGNORE")
+        {
+            std::pair<std::string, std::string> const botRequest = SplitOnce(request.second, kFieldSeparator);
+            std::pair<std::string, std::string> const tokenRequest = SplitOnce(botRequest.second, kFieldSeparator);
+            std::pair<std::string, std::string> const spellRequest = SplitOnce(tokenRequest.second, kFieldSeparator);
+            RunSpellIgnoreCommand(player, replyType, botRequest.first, tokenRequest.first, spellRequest.first, spellRequest.second);
             return true;
         }
 
