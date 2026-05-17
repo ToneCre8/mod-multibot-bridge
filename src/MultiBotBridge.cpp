@@ -3458,12 +3458,9 @@ void RunSpellIgnoreCommand(Player* requester, ChatMsg replyType, std::string con
         {
             if (PlayerbotAI* const botAI = sPlayerbotsMgr.GetPlayerbotAI(bot))
             {
-                std::set<uint32>& ignoredSpells =
-                    botAI->GetAiObjectContext()->GetValue<std::set<uint32>&>("skip spells list")->Get();
-                if (enabled)
-                    ignoredSpells.erase(spellId);
-                else
-                    ignoredSpells.insert(spellId);
+                std::ostringstream command;
+                command << "ss " << (enabled ? "-" : "+") << spellId;
+                botAI->HandleCommand(CHAT_MSG_WHISPER, command.str(), requester);
                 ok = true;
             }
         }
