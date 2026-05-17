@@ -2221,6 +2221,21 @@ void SendSpellbookSnapshot(Player* requester, ChatMsg replyType, std::string con
         return;
     }
 
+    if (PlayerbotAI* const botAI = sPlayerbotsMgr.GetPlayerbotAI(bot))
+    {
+        std::ostringstream ignoredPayload;
+        ignoredPayload << bot->GetName() << kFieldSeparator << requestToken << kFieldSeparator;
+        bool first = true;
+        for (uint32 const spellId : AI_VALUE(std::set<uint32>&, "skip spells list"))
+        {
+            if (!first)
+                ignoredPayload << ",";
+            first = false;
+            ignoredPayload << spellId;
+        }
+        SendAddonPacket(requester, replyType, "SB_IGNORED", ignoredPayload.str());
+    }
+
     std::vector<SpellbookEntryData> const entries = BuildSpellbookEntries(bot);
     for (SpellbookEntryData const& entry : entries)
     {
