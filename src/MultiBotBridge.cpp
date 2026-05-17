@@ -2226,7 +2226,9 @@ void SendSpellbookSnapshot(Player* requester, ChatMsg replyType, std::string con
         std::ostringstream ignoredPayload;
         ignoredPayload << bot->GetName() << kFieldSeparator << requestToken << kFieldSeparator;
         bool first = true;
-        for (uint32 const spellId : AI_VALUE(std::set<uint32>&, "skip spells list"))
+        std::set<uint32>& ignoredSpells =
+            botAI->GetAiObjectContext()->GetValue<std::set<uint32>&>("skip spells list")->Get();
+        for (uint32 const spellId : ignoredSpells)
         {
             if (!first)
                 ignoredPayload << ",";
