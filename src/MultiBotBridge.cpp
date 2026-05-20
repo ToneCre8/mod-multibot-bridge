@@ -10,6 +10,7 @@
 #include "GuildMgr.h"
 #include "Item.h"
 #include "ItemPackets.h"
+#include "LootObjectStack.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "PlayerbotAI.h"
@@ -4001,6 +4002,15 @@ std::string JoinStrategies(std::vector<std::string> const& strategies)
     return out.str();
 }
 
+std::string GetLootStrategyName(PlayerbotAI* botAI)
+{
+    if (!botAI || !botAI->GetAiObjectContext())
+        return "";
+
+    LootStrategy* const lootStrategy = botAI->GetAiObjectContext()->GetValue<LootStrategy*>("loot strategy")->Get();
+    return lootStrategy ? lootStrategy->GetName() : "";
+}
+
 std::string BuildRosterPayload(Player* player)
 {
     std::ostringstream out;
@@ -4109,7 +4119,7 @@ std::string BuildStatePayload(Player* player, std::string const& botName)
 
     std::ostringstream out;
     out << bot->GetName() << kFieldSeparator << JoinStrategies(botAI->GetStrategies(BOT_STATE_COMBAT)) << kFieldSeparator
-        << JoinStrategies(botAI->GetStrategies(BOT_STATE_NON_COMBAT));
+        << JoinStrategies(botAI->GetStrategies(BOT_STATE_NON_COMBAT)) << kFieldSeparator << GetLootStrategyName(botAI);
     return out.str();
 }
 
@@ -4121,15 +4131,18 @@ void SendStatePackets(Player* player, ChatMsg replyType)
         PlayerbotAI* const botAI = sPlayerbotsMgr.GetPlayerbotAI(bot);
         std::string combatStrategies;
         std::string nonCombatStrategies;
+        std::string lootStrategy;
 
         if (botAI)
         {
             combatStrategies = JoinStrategies(botAI->GetStrategies(BOT_STATE_COMBAT));
             nonCombatStrategies = JoinStrategies(botAI->GetStrategies(BOT_STATE_NON_COMBAT));
+            lootStrategy = GetLootStrategyName(botAI);
         }
 
         std::ostringstream out;
-        out << bot->GetName() << kFieldSeparator << combatStrategies << kFieldSeparator << nonCombatStrategies;
+        out << bot->GetName() << kFieldSeparator << combatStrategies << kFieldSeparator << nonCombatStrategies
+            << kFieldSeparator << lootStrategy;
         SendAddonPacket(player, replyType, "STATE", out.str());
         sent = true;
     }
