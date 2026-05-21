@@ -4030,6 +4030,43 @@ std::string BuildRosterPayload(Player* player)
     return out.str();
 }
 
+std::string BuildAccountAltsPayload(Player* player)
+{
+    if (!player || !player->GetSession())
+        return "";
+
+    QueryResult result = CharacterDatabase.Query(
+        "SELECT name, class, level, online FROM characters WHERE account = {} ORDER BY name",
+        player->GetSession()->GetAccountId());
+
+    if (!result)
+        return "";
+
+    std::ostringstream out;
+    bool first = true;
+
+    do
+    {
+        Field* const fields = result->Fetch();
+        std::string const name = fields[0].Get<std::string>();
+
+        if (name == player->GetName())
+            continue;
+
+        if (!first)
+            out << ';';
+        first = false;
+
+        out << UrlEncodeField(name)
+            << ',' << fields[1].Get<uint8>()
+            << ',' << fields[2].Get<uint8>()
+            << ',' << fields[3].Get<uint8>();
+    }
+    while (result->NextRow());
+
+    return out.str();
+}
+
 void SendDetailPackets(Player* player, ChatMsg replyType)
 {
     bool sent = false;
@@ -4194,6 +4231,12 @@ bool HandleBridgeOpcode(Player* player, ChatMsg replyType, std::string const& op
         if (requestType == "ROSTER")
         {
             SendAddonPacket(player, replyType, "ROSTER", BuildRosterPayload(player));
+            return true;
+        }
+
+        if (requestType == "ACCOUNT_ALTS")
+        {
+            SendAddonPacket(player, replyType, "ACCOUNT_ALTS", BuildAccountAltsPayload(player));
             return true;
         }
 
