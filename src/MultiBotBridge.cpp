@@ -4058,9 +4058,9 @@ std::string BuildAccountAltsPayload(Player* player)
         first = false;
 
         out << UrlEncodeField(name)
-            << ',' << fields[1].Get<uint8>()
-            << ',' << fields[2].Get<uint8>()
-            << ',' << fields[3].Get<uint8>();
+            << ',' << static_cast<uint32>(fields[1].Get<uint8>())
+            << ',' << static_cast<uint32>(fields[2].Get<uint8>())
+            << ',' << static_cast<uint32>(fields[3].Get<uint8>());
     }
     while (result->NextRow());
 
